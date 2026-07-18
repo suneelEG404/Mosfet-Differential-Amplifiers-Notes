@@ -3,7 +3,7 @@
 
 ---
 
-## 0. Why Differential Amplifiers Exist (Motivation)
+## Why Differential Amplifiers Exist (Motivation)
 
 Direct-coupled (DC) amplifier stages are needed in ICs because coupling/bypass capacitors can't be fabricated economically on-chip. But direct coupling between stages/signal source causes **temperature drift (zero drift)** — the output creeps even with zero input, because bias points shift with temperature and every stage's shift gets amplified by the next.
 
@@ -15,99 +15,14 @@ Direct-coupled (DC) amplifier stages are needed in ICs because coupling/bypass c
 
 ---
 
-## 1. The BJT Differential Pair (Section 6.1)
-
-**Topology:** Two matched BJTs (Q1, Q2) with coupled emitters, fed by a single tail current source *I* (ideal, infinite output resistance), each collector through $R_C$ to $V_{CC}$.
-
-### Basic Operation — 4 regimes
-
-| Case | Input | Result |
-|---|---|---|
-| (a) Common-mode | $v_{CM}$ on both bases | Current splits *I*/2, *I*/2 equally; $v_{C1}=v_{C2}$; **CM rejected** as long as both transistors stay active |
-| (b) Large diff., +1V vs 0V | Q1 fully ON, Q2 fully OFF | All of *I* flows in Q1 |
-| (c) Large diff., −1V vs 0V | Q1 OFF, Q2 ON | All of *I* flows in Q2 |
-| (d) Small diff. signal $v_i$ | Linear region | Increment $\Delta I$ in Q1, decrement in Q2 — **linear amplification** |
-
-> 💡 **My take:** This four-slide sequence (common-mode → hard switch each way → small-signal) is the cleanest way to *build intuition* before the math. It shows the diff pair is fundamentally a **current-steering switch** that happens to behave linearly near balance — this is exactly why the same topology reappears as an ECL logic gate (hard switching) and as a linear front-end (small-signal). Same circuit, different signal amplitude.
-
-### Large-Signal Transfer Characteristic
-
-$$i_{E1} = \frac{I_S}{\alpha}e^{(v_{B1}-v_E)/V_T}, \quad i_{E2} = \frac{I_S}{\alpha}e^{(v_{B2}-v_E)/V_T}$$
-
-With $i_{E1}+i_{E2}=I$:
-
-$$i_{E1} = \frac{I}{1+e^{(v_{B2}-v_{B1})/V_T}}, \qquad i_{E2} = \frac{I}{1+e^{(v_{B1}-v_{B2})/V_T}}$$
-
-This gives the classic **tanh-shaped** normalized transfer curve of $i_C/I$ vs $v_{id}/V_T$, with:
-- **Linear region** roughly $|v_{id}| \lesssim V_T/2$ (small-signal amp)
-- **Full switching** at $|v_{id}| \approx 4V_T \approx 100\text{ mV}$ (fast current switch / logic)
-
-**Linearizing trick:** insert equal emitter resistances $R_e$ in series with each emitter → trades gain for linear range (larger $IR_e/V_T$ → wider linear region, lower gain). Classic linearity-vs-gain tradeoff.
-
-> 💡 **My take:** The $4V_T \approx 100\text{mV}$ threshold number is worth memorizing — it's the reason ECL logic swings are so small (~0.3–0.8V) and why BJT diff pairs make such fast comparators/switches.
-
----
-
-## 2. Small-Signal Operation (Section 6.2)
-
-For $v_{id} \ll 2V_T$:
-$$g_m = \frac{\alpha I}{2V_T} \approx \frac{I}{2V_T}$$
-
-**Half-circuit trick derivation (no $R_e$):**
-$$r_e = \frac{V_T}{I/2}, \quad i_c = \alpha i_e = \frac{\alpha v_d}{2r_e} = g_m\frac{v_d}{2}$$
-
-**With emitter resistors $R_e$:**
-$$R_{id} = (1+\beta)(2r_e + 2R_e)$$
-
-### Differential Gain
-| Output taken | No $R_e$ | With $R_e$ |
-|---|---|---|
-| Single-ended | $A_{d1,2} = \mp\frac{1}{2}g_mR_C$ | $\mp\frac{1}{2}\frac{R_C}{r_e+R_e}$ |
-| Differential | $A_d = g_mR_C$ | $\frac{R_C}{r_e+R_e}$ |
-
-> Key rule of thumb (stated explicitly on the slides): **"Voltage gain = ratio of total resistance in collector circuit to total resistance in emitter circuit."** This is a very fast sanity-check formula worth memorizing.
-
-### Differential Half-Circuit Analysis
-Because the joint-emitter node sits at **0V (virtual ground)** for pure differential drive, each side is just a common-emitter amplifier biased at *I*/2. This "half-circuit" trick lets you reuse ordinary CE-amplifier formulas for gain, $R_{id}$, and frequency response — **huge simplification**.
-
-Important subtlety (slide 21): the half-circuit equivalence also holds for **single-ended drive** (one input driven, other grounded) as long as $R_{EE} \gg r_e$ — because the emitter signal voltage still $\approx v_{id}/2$ and current into $R_{EE}$ is negligible.
-
-> 💡 **My take:** The half-circuit method is *the* single most powerful analysis shortcut in this chapter. Once mastered, you never need to redo the "big" differential-pair small-signal analysis by hand again — just draw one CE stage biased at I/2 and apply standard formulas.
-
----
-
-## 3. Common-Mode Gain & CMRR
-
-With finite tail resistance $R_{EE}$ (not ideal current source):
-
-$$A_{cm,\text{single-ended}} = -\frac{R_C}{2R_{EE}} \qquad A_{cm,\text{diff. output}} = 0 \text{ (if perfectly matched)}$$
-
-$$CMRR_{\text{single-ended}} = \left|\frac{A_d}{A_{cm}}\right| \approx g_mR_{EE} \qquad CMRR_{\text{diff.}} = \infty \text{ (ideal, matched)}$$
-
-**Mismatch effects** (real, non-ideal circuits):
-$$CMRR = \frac{2g_mR_{EE}}{\Delta R_C/R_C} \qquad \text{or} \qquad CMRR = \frac{2g_mR_{EE}}{\Delta g_m/g_m}$$
-
-**Input common-mode resistance:**
-$$R_{icm} \approx (1+\beta)\left(R_{EE}\parallel \frac{r_o}{2}\right)$$
-— very large, as desired (an ideal input shouldn't load down whatever's driving vCM).
-
-> 💡 **My take:** This is where the "differential output = infinite CMRR" claim needs a grain of salt — it's a **first-order idealization**. In practice, differential output only helps CMRR to the extent the two halves are matched; component mismatch ($\Delta R_C$, $\Delta g_m$) is what ultimately limits real CMRR, often to 60–100 dB in practice, not infinity. This is exactly why datasheets specify CMRR as a number, not "infinite."
-
----
-
-## 4. Other Nonideal Characteristics (Section 6.3)
-
-- **Input offset voltage $V_{OS} = V_O/A_d$** — the equivalent input voltage needed to null the DC output offset caused by unavoidable mismatches (in real fabricated devices, $\beta$, $I_S$, $R_C$ never match perfectly).
-- **Input bias/offset currents:** ideally $I_{B1}=I_{B2} = \frac{I/2}{\beta+1}$; mismatch gives $I_{OS}=|I_{B1}-I_{B2}|$.
-- **Input common-mode range:** the $v_{CM}$ range over which both transistors stay in the active region (bounded by output swing and headroom for the tail current source).
-
----
-
-## 5. MOS Differential Amplifiers (Section 6.4)
+## MOS Differential Amplifiers 
+<img width="698" height="518" alt="image" src="https://github.com/user-attachments/assets/27ea30b9-ae1f-42cd-958c-da2b600a9142" />
 
 Same conceptual structure as BJT pair, using MOSFETs (Q1, Q2), tail current *I*, drain resistors $R_D$.
 
 ### Large-Signal Behavior
+<img width="525" height="446" alt="image" src="https://github.com/user-attachments/assets/52bfa48f-8f07-43c5-8699-6e373950edc0" />
+
 - Common-mode input: current splits equally, symmetric, CM rejected (same as BJT case).
 - Differential input steers *I* from one MOS to the other over the range:
 $$-\sqrt{2}V_{OV} \le v_{id} \le \sqrt{2}V_{OV}$$
