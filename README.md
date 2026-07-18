@@ -1,4 +1,4 @@
-# Chapter 6 — Differential and Multistage Amplifiers
+# Differential and Multistage Amplifiers
 ### Study Notes (based on SJTU Microelectronic Circuits slides, Yang Hua)
 
 ---
